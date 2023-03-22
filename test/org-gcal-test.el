@@ -139,7 +139,7 @@ always located at the beginning of the buffer."
          (let ((data '(:foo :bar)))
            (org-gcal--save-sexp data file)
            (should (string-equal (buffer-string)
-                          ""))
+                                 ""))
            (should (equal (org-gcal--read-file-contents file)
                           `(:token ,data :elem nil)))
            (setq data '(:baz :quux))
@@ -165,7 +165,7 @@ object."
      (should (equal (org-element-property :LOCATION elem)
                     "Foobar's desk"))
      (should (equal (org-element-property :LINK elem)
-              "[[https://google.com][Google]]"))
+                    "[[https://google.com][Google]]"))
      (should (equal (org-element-property :TRANSPARENCY elem)
                     "opaque"))
      (should (equal (org-element-property :CALENDAR-ID elem)
@@ -187,6 +187,46 @@ My event description
 
 Second paragraph
 ")))))
+
+(ert-deftest org-gcal-test--update-empty-entry-always-schedule ()
+  "Verify that an empty headline is populated correctly from a calendar event
+object."
+  (let ((org-gcal-always-schedule-events t))
+    (org-gcal-test--with-temp-buffer
+     "* "
+     (org-gcal--update-entry org-gcal-test-calendar-id
+                             org-gcal-test-event)
+     (org-back-to-heading)
+     (let ((elem (org-element-at-point)))
+       (should (equal (org-gcal-test--title-to-string elem)
+                      "My event summary"))
+       (should (equal (org-element-property :ETAG elem)
+                      "\"12344321\""))
+       (should (equal (org-element-property :LOCATION elem)
+                      "Foobar's desk"))
+       (should (equal (org-element-property :LINK elem)
+                      "[[https://google.com][Google]]"))
+       (should (equal (org-element-property :TRANSPARENCY elem)
+                      "opaque"))
+       (should (equal (org-element-property :CALENDAR-ID elem)
+                      "foo@foobar.com"))
+       (should (equal (org-element-property :ENTRY-ID elem)
+                      "foobar1234/foo@foobar.com"))
+       (should (equal (org-entry-get (point) "SCHEDULED")
+                      "<2019-10-06 Sun 17:00-21:00>")))
+     ;; Check contents of "org-gcal" drawer
+     (re-search-forward ":org-gcal:")
+     (let ((elem (org-element-at-point)))
+       (should (equal (org-element-property :drawer-name elem)
+                      "org-gcal"))
+       (should (equal (buffer-substring-no-properties
+                       (org-element-property :contents-begin elem)
+                       (org-element-property :contents-end elem))
+                      "\
+My event description
+
+Second paragraph
+"))))))
 
 (ert-deftest org-gcal-test--update-existing-entry ()
   "Verify that an existing headline is populated correctly from a calendar event
@@ -219,7 +259,7 @@ Old event description
      (should (equal (org-element-property :LOCATION elem)
                     "Foobar's desk"))
      (should (equal (org-element-property :LINK elem)
-              "[[https://google.com][Google]]"))
+                    "[[https://google.com][Google]]"))
      (should (equal (org-element-property :TRANSPARENCY elem)
                     "opaque"))
      (should (equal (org-element-property :CALENDAR-ID elem)

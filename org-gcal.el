@@ -301,6 +301,11 @@ See: https://developers.google.com/calendar/v3/reference/events/insert."
   :group 'org-gcal
   :type 'string)
 
+(defcustom org-gcal-always-schedule-events nil
+  "If non-nil, always schedule events using `org-schedule'."
+  :group 'org-gcal
+  :type 'boolean)
+
 (defun org-gcal-events-url (calendar-id)
   "URL used to request access to events on calendar CALENDAR-ID."
   (format "https://www.googleapis.com/calendar/v3/calendars/%s/events"
@@ -1719,7 +1724,8 @@ heading."
                        (if (< 11 (length end))
                            end
                          (org-gcal--iso-previous-day end))))))))
-      (if (org-element-property :scheduled elem)
+      (if (or org-gcal-always-schedule-events
+              (org-element-property :scheduled elem))
           (unless (and recurrence old-start)
             ;; Ensure CLOSED timestamp isn’t wiped out by ‘org-gcal-sync’ (see
             ;; https://github.com/kidd/org-gcal.el/issues/218).
